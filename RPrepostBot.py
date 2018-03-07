@@ -4,10 +4,18 @@ import telepot
 import telepot.aio
 from telepot.aio.loop import MessageLoop
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 import vk_api
-import requests, shutil
+import requests, shutil, re
 from pprint import pprint
 
+commands = ("/start",
+            "/addchannel",
+            "/checkadmin",
+            "/addvktoken",
+            "/addvkgroup",
+            "/addvkalbum",
+            "/help")
 
 def vk_poster(vk_token, vk_app, vk_group, text=None, bold=None, pics=None, urls=None):
     if not(text or pics):
@@ -30,11 +38,9 @@ def vk_poster(vk_token, vk_app, vk_group, text=None, bold=None, pics=None, urls=
 
     if urls:
         attachs.append(urls[0])
-    pprint(attachs)
 
     vk_response = vk.wall.post(owner_id=vk_group, from_group=1, message=text,
 				attachments=",".join(attachs))
-    pprint(vk_response)
 
     post_id = vk_response['post_id']
 
@@ -105,12 +111,54 @@ def message_formater(text, bold=None, italic=None, code=None, pre=None, text_lin
         formated_text = formated_text[:(char[0])] + char[1] + formated_text[(char[0]):]
     pprint(formated_text)
     return formated_text
+
+async def start_cmd(msg):
+    sent = await bot.sendMessage(msg['chat']['id'], "Hi! This must be description of me.")
+    if msg['chat']['id'] == tg_user: #in DATABASE #Сделать через БД
+        print("Known user") #Сделать действие известного пользователя
+        return
+    else:
+        keyboard = ReplyKeyboardMarkup(keyboard=[
+                       [KeyboardButton(text='Справка'),
+                        KeyboardButton(text='Добавить канал')],
+                   ], resize_keyboard=True, one_time_keyboard=True)
+        sent = await bot.sendMessage(msg['chat']['id'], "Вы можете добавить канал или воспользоваться справкой.", reply_markup=keyboard)
+
+async def addchannel_cmd(msg):
+    print("addchannel")
+    if msg['chat']['id'] == tg_user: #in DATABASE #Сделать через БД
+        print("Known user") #Сделать действие известного пользователя
+        sent = await bot.sendMessage(msg['chat']['id'], "Чтобы добавить ещё один канал, назначьте бота администратором канала.\nЗатем перешлите любое сообщение в данный чат.")
+        return
+    else:
+        sent = await bot.sendMessage(msg['chat']['id'], "Чтобы добавить канал, назначьте бота администратором канала.\nЗатем перешлите любое сообщение в данный чат.")
+        keyboard = ReplyKeyboardMarkup(keyboard=[
+                       [KeyboardButton(text='Справка'),
+                        KeyboardButton(text='Добавить канал')],
+                   ], resize_keyboard=True, one_time_keyboard=True)
+        sent = await bot.sendMessage(msg['chat']['id'], "Вы можете добавить канал или воспользоваться справкой.", reply_markup=keyboard)
+
+async def checkadmin_cmd(msg):
+    print("checkadmin_cmd")
+
+async def addvktoken_cmd(msg):
+    print("addvktoken")
+
+async def addvkgroup_cmd(msg):
+    print("addvkgroup_cmd")
+
+async def addvkalbum_cmd(msg):
+    print("addvkalbum_cmd")
+
+async def help_cmd(msg):
+    print("help_cmd")
+    sent = await bot.sendMessage(msg['chat']['id'], "Help message)")
+
 async def channel_handler(msg):
     print("channel handler")
     if not "text" in msg: return  #ПЕРЕСМОТРЕТЬ + сделать для фото
 
     channelusername = "@" + msg['chat']['username']
-    print(channelusername)
     channel_id = msg['chat']['id']
     ents = []				#entities of post
     text = ""				#text of post
@@ -166,7 +214,6 @@ async def channel_handler(msg):
                receive.write(filereq.content)
            del filereq
 
-    post_id = vk_poster(VK_TOKEN, VK_APP_ID, VK_GRP_ID, text=text, bold=bold, pics=pics, urls=["https://t.me/{}/{}".format(tg_channel, msg_id)])
     post_id = vk_poster(VK_TOKEN, VK_APP_ID, VK_GRP_ID, text=text, bold=bold, pics=pics, urls=["https://t.me/{}".format(tg_channel)])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[	#Добавить счётчик переходов
@@ -183,15 +230,38 @@ async def channel_handler(msg):
             sent = await bot.deleteMessage((channel_id, msg_id))
             sent = await bot.sendMessage(channel_id,markdown_text,parse_mode='Markdown',disable_notification=True,reply_markup=keyboard)
 
-
 def group_handler(msg):
     print("group handler")
 
-def private_handler(msg):
 async def private_handler(msg):
     print("private handler")
-    #
+    if not "text" in msg:
+        return
 
+    for command in commands:            #Возможно, стоит проверять по entities bot_command
+        regex = re.compile("{}(\s+.*)*$".format(command)) #Регулярное выражение
+        if re.match(regex, msg['text']):
+            if command == "/start":
+                await start_cmd(msg)
+            elif command == "/addchannel":
+                await addchannel_cmd(msg)
+            elif command == "/checkadmin":
+                await checkadmin_cmd(msg)
+            elif command == "/addvktoken":
+                await addvktoken_cmd(msg)
+            elif command == "/addvkgroup":
+                await addvkgroup_cmd(msg)
+            elif command == "/addvkalbum":
+                await addvkalbum_cmd(msg)
+            elif command == "/help":
+                await help_cmd(msg)
+            else:
+                print("Command without function!")
+
+    if msg['text'] == "Справка":
+        await help_cmd(msg)
+    elif msg['text'] == "Добавить канал":
+        await addchannel_cmd(msg)
 
 async def handle(msg):
     print("===================")
@@ -201,14 +271,12 @@ async def handle(msg):
     print(flavor, summary)
     pprint(msg)
 
-    if flavor == "chat":   #написать обработчик [/] команд
     if flavor == "chat":
         if summary[1] == "channel":
             await channel_handler(msg)
         elif summary[1] == "group":
             group_handler(msg)
         elif summary[1] == "private":
-            private_handler(msg)
             await private_handler(msg)
     else:
         print("Not a 'chat'")
@@ -227,6 +295,7 @@ VK_APP_ID = sys.argv[3]  # get app id from command-line
 VK_GRP_ID = -162320418
 
 tg_channel = "q2w_test"
+tg_user = 0 #470904540
 
 bot = telepot.aio.Bot(TG_TOKEN)
 loop = asyncio.get_event_loop()
