@@ -7,6 +7,10 @@ from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 import vk_api
 import requests, shutil, re
+from database.database import engine, Base
+from database import utils
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy_utils.functions import database_exists, create_database, drop_database
 from pprint import pprint
 
 commands = ("/start",
@@ -16,6 +20,8 @@ commands = ("/start",
             "/addvkgroup",
             "/addvkalbum",
             "/help")
+HELLO_FIRST_MSG = ("РУССКИЙ ЯЗЫК", "Hi new user!") #ИЗМЕНИТЬ
+HELLO_MSG = ("РУССКИЙ ЯЗЫК", "Hi, {}! You are welcome!")
 
 def vk_poster(vk_token, vk_app, vk_group, text=None, bold=None, pics=None, urls=None):
     if not(text or pics):
@@ -233,10 +239,27 @@ async def channel_handler(msg):
 def group_handler(msg):
     print("group handler")
 
-async def private_handler(msg):
+async def private_handler(msg, db_session):
     print("private handler")
+    tg_user_id = None
     if not "text" in msg:
         return
+
+    tg_user_id = msg['from']['id']
+    tg_user_name = msg['from']['first_name']
+
+    if not utils.get_tg_user(db_session, tg_user_id):
+        sent = await bot.sendMessage(tg_user_id,HELLO_FIRST_MSG[1],parse_mode='Markdown')
+        try:
+            utils.add_tg_user(db_session, tg_user_id)
+            #ДОБАВИТЬ В БАЗУ ИМЯ ПОЛЬЗОВАТЕЛЯ
+        except:
+            print("Problem with adding new tg user")
+            return
+        print("Added new user")
+        return
+
+    sent = await bot.sendMessage(tg_user_id,HELLO_MSG[1].format(tg_user_name),parse_mode='Markdown')
 
     for command in commands:            #Возможно, стоит проверять по entities bot_command
         regex = re.compile("{}(\s+.*)*$".format(command)) #Регулярное выражение
@@ -265,29 +288,55 @@ async def private_handler(msg):
 
 async def handle(msg):
     print("===================")
-    flavor = telepot.flavor(msg)
+    DBSession = sessionmaker(bind=engine)
+    db_session = DBSession()
 
-    summary = telepot.glance(msg, flavor=flavor)
-    print(flavor, summary)
+    flance = telepot.flance(msg)
+    print(flance)
     pprint(msg)
 
-    if flavor == "chat":
-        if summary[1] == "channel":
+    if flance[0] == "chat":
+        if flance[1][1] == "channel":
             await channel_handler(msg)
-        elif summary[1] == "group":
+        elif flance[1][1] == "group":
             group_handler(msg)
-        elif summary[1] == "private":
-            await private_handler(msg)
+        elif flance[1][1] == "private":
+            await private_handler(msg, db_session)
     else:
         print("Not a 'chat'")
 
 
 
 
-
+    try:
+        db_session.close()
+    except:
+        print("Database session was not closed")
     print("///////////////////")
 
+def reset_db():
+    """
+    Resets database
+    :return: 1 if datebase has been renewed, 0 someelse
+    """
+    if "true" != input("Accepting hardreset DB type 'true': "):
+        return 0
 
+    if database_exists(engine.url):
+        try:
+            drop_database(engine.url)
+        except:
+            print('Problems with database drop')
+        try:
+            create_database(engine.url, encoding='utf8mb4')
+        except:
+            print('Problem with database creation')
+
+    Base.metadata.create_all(engine)
+    return 1
+
+if "resetdb" in sys.argv:
+    reset_db()
 
 TG_TOKEN = sys.argv[1]  # get telegram token from command-line
 VK_TOKEN = sys.argv[2]  # get vk token from command-line
@@ -295,7 +344,6 @@ VK_APP_ID = sys.argv[3]  # get app id from command-line
 VK_GRP_ID = -162320418
 
 tg_channel = "q2w_test"
-tg_user = 0 #470904540
 
 bot = telepot.aio.Bot(TG_TOKEN)
 loop = asyncio.get_event_loop()
