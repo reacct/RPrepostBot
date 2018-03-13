@@ -1,4 +1,4 @@
 SERVER = "localhost"
-USER = "root"
-PASSWORD = "2pluS5willbE11"
+USER = "egor"
+PASSWORD = "12345"
 DATABASE = "main"

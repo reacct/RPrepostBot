@@ -15,13 +15,18 @@ from pprint import pprint
 
 commands = ("/start",
             "/addchannel",
-            "/checkadmin",
-            "/addvktoken",
-            "/addvkgroup",
-            "/addvkalbum",
+#            "/checkadmin",
+#            "/addvktoken",
+#            "/addvkgroup",
+#            "/addvkalbum",
             "/help")
 HELLO_FIRST_MSG = ("РУССКИЙ ЯЗЫК", "Hi new user!") #ИЗМЕНИТЬ
 HELLO_MSG = ("РУССКИЙ ЯЗЫК", "Hi, {}! You are welcome!")
+START_MSG = ("РУССКИЙ ЯЗЫК", "Start message!")
+HELP_MSG = ("РУССКИЙ ЯЗЫК", "Help message!")
+ADD_CHANNEL_MSG = ("РУССКИЙ ЯЗЫК", "Add channel message!")
+
+CANCEL_BTN = ("Отмена", "Cancel")
 
 def vk_poster(vk_token, vk_app, vk_group, text=None, bold=None, pics=None, urls=None):
     if not(text or pics):
@@ -118,31 +123,70 @@ def message_formater(text, bold=None, italic=None, code=None, pre=None, text_lin
     pprint(formated_text)
     return formated_text
 
-async def start_cmd(msg):
-    sent = await bot.sendMessage(msg['chat']['id'], "Hi! This must be description of me.")
-    if msg['chat']['id'] == tg_user: #in DATABASE #Сделать через БД
-        print("Known user") #Сделать действие известного пользователя
-        return
-    else:
-        keyboard = ReplyKeyboardMarkup(keyboard=[
-                       [KeyboardButton(text='Справка'),
-                        KeyboardButton(text='Добавить канал')],
-                   ], resize_keyboard=True, one_time_keyboard=True)
-        sent = await bot.sendMessage(msg['chat']['id'], "Вы можете добавить канал или воспользоваться справкой.", reply_markup=keyboard)
+async def start_cmd(msg, db_session, tg_user_id):
+    print("Start command")
 
-async def addchannel_cmd(msg):
-    print("addchannel")
-    if msg['chat']['id'] == tg_user: #in DATABASE #Сделать через БД
-        print("Known user") #Сделать действие известного пользователя
-        sent = await bot.sendMessage(msg['chat']['id'], "Чтобы добавить ещё один канал, назначьте бота администратором канала.\nЗатем перешлите любое сообщение в данный чат.")
-        return
-    else:
-        sent = await bot.sendMessage(msg['chat']['id'], "Чтобы добавить канал, назначьте бота администратором канала.\nЗатем перешлите любое сообщение в данный чат.")
-        keyboard = ReplyKeyboardMarkup(keyboard=[
-                       [KeyboardButton(text='Справка'),
-                        KeyboardButton(text='Добавить канал')],
-                   ], resize_keyboard=True, one_time_keyboard=True)
-        sent = await bot.sendMessage(msg['chat']['id'], "Вы можете добавить канал или воспользоваться справкой.", reply_markup=keyboard)
+    keyboard = ReplyKeyboardMarkup(keyboard=[
+                   [KeyboardButton(text='Справка'),
+                    KeyboardButton(text='Добавить канал')],
+               ], resize_keyboard=True, one_time_keyboard=True)
+    sent = await bot.sendMessage(tg_user_id,START_MSG[1],parse_mode='Markdown',reply_markup=keyboard)
+
+async def addchannel_cmd(msg, db_session, tg_user_id, answer=False):
+    print("Add channel command")
+    if answer:
+        channel = 0
+        chat = {}
+        if "forward_from_chat" in msg:
+            channel = msg['forward_from_chat']['id']
+            try:
+                chat = await bot.getChat(channel)
+            except:
+                print("Not id of channel")
+        elif "text" in msg:
+            match = ""
+            if re.match(r"^@\w{3,}$", msg['text']):
+                match = msg['text']
+            elif re.match(r"^-\d{6,}$", msg['text']):
+                match = int(msg['text'])
+            if match:
+                try:
+                    chat = await bot.getChat(match)
+                    channel = chat['id']
+                except:
+                    print("Unknown name")
+        else:
+            raise("Unknown type in place of waiting new channel id")
+
+        if chat and chat['type'] == "channel":
+            admins = {}
+            try:
+                admins = await bot.getChatAdministrators(channel)
+                pprint(admins)
+            except:
+                sent = await bot.sendMessage(tg_user_id, "Bot is not an administartor of this channel") #В БОЛЬШУЮ ПЕРЕМЕННУЮ
+            for admin in admins:
+                if admin['user']['id'] == 548347944: #НОМЕР БОТА. УБРАТЬ!!!
+                    if admin['can_delete_messages'] and admin['can_edit_messages'] and admin['can_invite_users'] and admin['can_post_messages']:
+                        db_tg_user = utils.get_tg_user(db_session, tg_user_id)
+                        channels = utils.get_channels(db_session, db_tg_user)
+                        if not channel in channels:
+                            print(channels)
+                            utils.add_tg_channel(db_session, channel, db_tg_user)
+                            sent = await bot.sendMessage(tg_user_id, "This channel has successfully been added") #В БОЛЬШУЮ ПЕРЕМЕННУЮ
+                        else:
+                            sent = await bot.sendMessage(tg_user_id, "This channel was already added") #В БОЛЬШУЮ ПЕРЕМЕННУЮ
+                        return
+                    else:
+                        sent = await bot.sendMessage(tg_user_id, "Bot have not required permissions") #В БОЛЬШУЮ ПЕРЕМЕННУЮ
+                    break
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                   [InlineKeyboardButton(text=CANCEL_BTN[0], callback_data='cancel_command')],
+               ])
+
+    sent = await bot.sendMessage(tg_user_id, ADD_CHANNEL_MSG[1], reply_markup=keyboard)
+    DIALOG_STATE = "hard_addchannel" #ДОЛЖНО БЫТЬ В БАЗЕ
 
 async def checkadmin_cmd(msg):
     print("checkadmin_cmd")
@@ -156,9 +200,9 @@ async def addvkgroup_cmd(msg):
 async def addvkalbum_cmd(msg):
     print("addvkalbum_cmd")
 
-async def help_cmd(msg):
-    print("help_cmd")
-    sent = await bot.sendMessage(msg['chat']['id'], "Help message)")
+async def help_cmd(msg, db_session, tg_user_id):
+    print("Help command")
+    sent = await bot.sendMessage(tg_user_id,HELP_MSG[1],parse_mode='Markdown')
 
 async def channel_handler(msg):
     print("channel handler")
@@ -261,30 +305,35 @@ async def private_handler(msg, db_session):
 
     sent = await bot.sendMessage(tg_user_id,HELLO_MSG[1].format(tg_user_name),parse_mode='Markdown')
 
+    dialog_state = DIALOG_STATE #database
+    if dialog_state:
+        if dialog_state == "hard_addchannel":
+            await addchannel_cmd(msg, db_session, tg_user_id, answer=True)
+
     for command in commands:            #Возможно, стоит проверять по entities bot_command
         regex = re.compile("{}(\s+.*)*$".format(command)) #Регулярное выражение
         if re.match(regex, msg['text']):
             if command == "/start":
-                await start_cmd(msg)
+                await start_cmd(msg, db_session, tg_user_id)
             elif command == "/addchannel":
-                await addchannel_cmd(msg)
-            elif command == "/checkadmin":
-                await checkadmin_cmd(msg)
-            elif command == "/addvktoken":
-                await addvktoken_cmd(msg)
-            elif command == "/addvkgroup":
-                await addvkgroup_cmd(msg)
-            elif command == "/addvkalbum":
-                await addvkalbum_cmd(msg)
+                await addchannel_cmd(msg, db_session, tg_user_id)
+#            elif command == "/checkadmin":
+#                await checkadmin_cmd(msg)
+#            elif command == "/addvktoken":
+#                await addvktoken_cmd(msg)
+#            elif command == "/addvkgroup":
+#                await addvkgroup_cmd(msg)
+#            elif command == "/addvkalbum":
+#                await addvkalbum_cmd(msg)
             elif command == "/help":
-                await help_cmd(msg)
+                await help_cmd(msg, db_session, tg_user_id)
             else:
                 print("Command without function!")
 
     if msg['text'] == "Справка":
-        await help_cmd(msg)
+        await help_cmd(msg, db_session, tg_user_id)
     elif msg['text'] == "Добавить канал":
-        await addchannel_cmd(msg)
+        await addchannel_cmd(msg, db_session, tg_user_id)
 
 async def handle(msg):
     print("===================")
@@ -302,6 +351,15 @@ async def handle(msg):
             group_handler(msg)
         elif flance[1][1] == "private":
             await private_handler(msg, db_session)
+    elif flance[0] == "callback_query":
+        tg_user_id = msg['from']['id']
+        callback_query = msg['data']
+        msg_id = msg['message']['message_id']
+        db_tg_user = utils.get_tg_user(db_session, tg_user_id)
+
+        if callback_query == "cancel_command":
+            DIALOG_STATE = "" #ДОЛЖНО БЫТЬ В БАЗЕ
+            sent = await bot.deleteMessage((tg_user_id, msg_id))
     else:
         print("Not a 'chat'")
 
@@ -342,6 +400,8 @@ TG_TOKEN = sys.argv[1]  # get telegram token from command-line
 VK_TOKEN = sys.argv[2]  # get vk token from command-line
 VK_APP_ID = sys.argv[3]  # get app id from command-line
 VK_GRP_ID = -162320418
+
+DIALOG_STATE = "hard_addchannel" #ДОЛЖНО БЫТЬ В БАЗЕ
 
 tg_channel = "q2w_test"
 
