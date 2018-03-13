@@ -2,14 +2,16 @@ from database.models import *
 from sqlalchemy.exc import *
 
 
-def add_tg_user(session, tg_user_id):
+def add_tg_user(session, tg_user_id, tg_first_name):
     """
     Adds telegram user in database
     :param session: session object
-    :param tg_user_id:
+    :param tg_user_id: Telegram user ID, integer
+    :param tg_first_name: First name of user, string
     :return: TGUser class entity
     """
-    tg_user = TGUser(tg_user_id=tg_user_id)
+    tg_user = TGUser(tg_user_id=tg_user_id,
+                     tg_first_name=tg_first_name)
     session.add(tg_user)
     session.commit()
     return tg_user

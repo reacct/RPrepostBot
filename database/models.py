@@ -13,7 +13,8 @@ class TGUser(Base):
 
     id = Column(Integer, primary_key=True)
     tg_user_id = Column(BIGINT, nullable=False, unique=True)
-    tg_username = Column(String(50))
+    tg_first_name = Column(String(50), nullable=False)
+    dialog_state = Column(String(50))
 
 
 class VKUser(Base):
