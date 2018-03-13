@@ -23,7 +23,7 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 # создаём тестовых пользователей
-test_tg_user = utils.add_tg_user(session, -6123456)
+test_tg_user = utils.add_tg_user(session, -6123456, "test_user")
 test_vk_user = utils.add_vk_user(session, -6789012)
 tes_vk_group = utils.add_vk_group(session, -4567890, test_vk_user)
 test_tg_channel = utils.add_tg_channel(session, -4022001, test_tg_user)

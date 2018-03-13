@@ -86,14 +86,18 @@ def bind_channel_with_group(session, tg_channel, vk_group):
     session.commit()
 
 
-def get_channels(session, tg_user):
+def get_channels(session, tg_user=None):
     """
     Get list of channels by tg_user
     :param session: session object
-    :param tg_user: TGUser class entity
+    :param tg_user: TGUser class entity or None if need all channels in DB
     :return: list of TGChannel objects
     """
-    return session.query(TGChannel).filter_by(tg_user_id=tg_user.id).all()
+    if not tg_user:
+        channels = session.query(TGChannel).all()
+    else:
+        channels = session.query(TGChannel).filter_by(tg_user_id=tg_user.id).all()
+    return [channel.tg_channel_id for channel in channels]
 
 
 def get_posts_by_channel(session, tg_channel):
@@ -114,3 +118,26 @@ def get_tg_user(session, tg_user_id):
     :return: TGUser class entity
     """
     return session.query(TGUser).filter_by(tg_user_id=tg_user_id).first()
+
+
+def get_channel_by_id(session, tg_channel_id):
+    """
+    Get TGChannel class entity
+    :param session:  session object
+    :param tg_channel_id: telegram channel id, integer
+    :return: TGChannel class entity
+    """
+    return session.query(TGChannel).filter_by(tg_channel_id=tg_channel_id).first()
+
+
+def update_user_dialog_state(session, tg_user, state):
+    """
+    Update dialog state with user
+    :param session: session object
+    :param tg_user: TGUser class entity
+    :param state: dialog state, String (max 50)
+    :return:
+    """
+    tg_user.dialog_state = state
+    session.add(tg_user)
+    session.commit()

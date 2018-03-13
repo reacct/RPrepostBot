@@ -1,7 +1,13 @@
-from sqlalchemy import ForeignKey, Column, Integer, String, TIMESTAMP, BIGINT
+from sqlalchemy import ForeignKey, Column, Integer, String, TIMESTAMP, BIGINT, Enum
 from sqlalchemy.orm import relationship
 from .database import Base
 from datetime import datetime
+import enum
+
+
+class PaidEnum(enum.Enum):
+    paid = 1  # Если канал оплачен
+    not_paid = 0  # Если канал не оплачен
 
 
 class TGUser(Base):
@@ -15,6 +21,14 @@ class TGUser(Base):
     tg_user_id = Column(BIGINT, nullable=False, unique=True)
     tg_first_name = Column(String(50), nullable=False)
     dialog_state = Column(String(50))
+
+    def get_tg_first_name(self):
+        # Returns telegram first name of user
+        return self.tg_first_name
+
+    def get_dialog_state(self):
+        # Returns state of dialog with user
+        return self.dialog_state
 
 
 class VKUser(Base):
@@ -43,6 +57,15 @@ class TGChannel(Base):
     # Связь канал<->группаВК
     vk_group_id = Column(Integer, ForeignKey('vk_groups.id'))
     vk_group = relationship('VKGroup', backref='channels')
+
+    # Оплачено ли использование бота для данного канала
+    paid = Column(Enum(PaidEnum), default=PaidEnum.not_paid)
+
+    def is_paid(self):
+        if self.paid:
+            return True
+        else:
+            return False
 
 
 class VKGroup(Base):
