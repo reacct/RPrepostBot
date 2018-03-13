@@ -23,14 +23,20 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 # создаём тестовых пользователей
-test_tg_user = utils.add_tg_user(session, -6123456, "test_user")
-test_vk_user = utils.add_vk_user(session, -6789012)
-tes_vk_group = utils.add_vk_group(session, -4567890, test_vk_user)
+test_tg_user = utils.add_tg_user(session, 6123456, "test_user")
+test_vk_user = utils.add_vk_user(session, 6789012)
+test_vk_group = utils.add_vk_group(session, -4567890, test_vk_user)
 test_tg_channel = utils.add_tg_channel(session, -4022001, test_tg_user)
 test_tg_channel = utils.add_tg_channel(session, -4022005, test_tg_user)
 
 test_tg_post = utils.add_tg_post(session, test_tg_channel)
 test_tg_post_1 = utils.add_tg_post(session, test_tg_channel)
+
+utils.update_user_dialog_state(session, test_tg_user, "hello")
+
+test_tg_user_2 = utils.add_tg_user(session, 54687944, "test_user_2")
+test_tg_channel = utils.add_tg_channel(session, -5468798, test_tg_user_2)
+
 
 '''
 session.query().all() - возвращает результат запроса в виде списка
@@ -43,6 +49,14 @@ session.query().get(primary_key_value) - возвращает результат
 session.query().join() - http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.join
 '''
 
-print(utils.get_tg_user(session, 12345))
+print(utils.get_channels(session))
+
+print(utils.get_channels(session, test_tg_user_2))
+
+print(utils.get_tg_user(session, 6123456).get_dialog_state())
+
+print(utils.get_tg_user(session, 6123456).get_tg_first_name())
+
+print(utils.get_tg_user(session, 54687944))
 
 session.close()

@@ -30,6 +30,10 @@ class TGUser(Base):
         # Returns state of dialog with user
         return self.dialog_state
 
+    def __repr__(self):
+        return "<TGUser entity {tg_user_id: %d, tg_first_name: %s, dialog_state: %s}>" % \
+               (self.tg_user_id, self.tg_first_name, self.dialog_state)
+
 
 class VKUser(Base):
     """
