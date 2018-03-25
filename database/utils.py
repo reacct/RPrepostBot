@@ -138,6 +138,7 @@ def update_user_dialog_state(session, tg_user_id, state):
     :param state: dialog state, String (max 50)
     :return:
     """
-    tg_user = get_tg_user(tg_user_id).dialog_state = state
+    tg_user = get_tg_user(session, tg_user_id)
+    tg_user.dialog_state = state
     session.add(tg_user)
     session.commit()

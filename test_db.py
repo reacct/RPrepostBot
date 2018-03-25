@@ -32,7 +32,7 @@ test_tg_channel = utils.add_tg_channel(session, -4022005, test_tg_user)
 test_tg_post = utils.add_tg_post(session, test_tg_channel)
 test_tg_post_1 = utils.add_tg_post(session, test_tg_channel)
 
-utils.update_user_dialog_state(session, test_tg_user, "hello")
+utils.update_user_dialog_state(session, 6123456, "hello")
 
 test_tg_user_2 = utils.add_tg_user(session, 54687944, "test_user_2")
 test_tg_channel = utils.add_tg_channel(session, -5468798, test_tg_user_2)
