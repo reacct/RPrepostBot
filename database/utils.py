@@ -130,14 +130,14 @@ def get_channel_by_id(session, tg_channel_id):
     return session.query(TGChannel).filter_by(tg_channel_id=tg_channel_id).first()
 
 
-def update_user_dialog_state(session, tg_user, state):
+def update_user_dialog_state(session, tg_user_id, state):
     """
     Update dialog state with user
     :param session: session object
-    :param tg_user: TGUser class entity
+    :param tg_user_id: ID of user in telegram, integer
     :param state: dialog state, String (max 50)
     :return:
     """
-    tg_user.dialog_state = state
+    tg_user = get_tg_user(tg_user_id).dialog_state = state
     session.add(tg_user)
     session.commit()
