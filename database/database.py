@@ -4,5 +4,6 @@ from .config import *
 
 
 # Возможно использование драйвера pymysql: mysql+pymysql
-engine = create_engine('mysql://{}:{}@{}/{}'.format(USER, PASSWORD, SERVER, DATABASE))
+engine = create_engine('mysql://{}:{}@{}/{}'.format(USER, PASSWORD, SERVER, DATABASE),
+                       encoding='utf8')
 Base = declarative_base()

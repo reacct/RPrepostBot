@@ -1,8 +1,7 @@
-from sqlalchemy import ForeignKey, Column, Integer, String, TIMESTAMP, BIGINT, Enum
+from sqlalchemy import ForeignKey, Column, Integer, String, TIMESTAMP, BIGINT
 from sqlalchemy.orm import relationship
 from .database import Base
 from datetime import datetime
-import enum
 
 
 class PaidEnum:

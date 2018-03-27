@@ -196,6 +196,8 @@ def set_channel_on(session, tg_channel_id):
     """
     channel = get_channel_by_id(session, tg_channel_id)
     channel.state = ChannelStateEnum.ON
+    session.add(channel)
+    session.commit()
 
 
 def set_channel_off(session, tg_channel_id):
@@ -207,6 +209,8 @@ def set_channel_off(session, tg_channel_id):
     """
     channel = get_channel_by_id(session, tg_channel_id)
     channel.state = ChannelStateEnum.OFF
+    session.add(channel)
+    session.commit()
 
 
 def is_user_paid(session, tg_user_id):
