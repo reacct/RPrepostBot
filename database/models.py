@@ -5,9 +5,14 @@ from datetime import datetime
 import enum
 
 
-class PaidEnum(enum.Enum):
-    paid = 1  # Если канал оплачен
-    not_paid = 0  # Если канал не оплачен
+class PaidEnum:
+    PAID = 1  # Если оплачено
+    NOT_PAID = 0  # Если не оплачено
+
+
+class ChannelStateEnum:
+    ON = 1  # Если канал включен
+    OFF = 0  # Если канал выключен
 
 
 class TGUser(Base):
@@ -20,7 +25,15 @@ class TGUser(Base):
     id = Column(Integer, primary_key=True)
     tg_user_id = Column(BIGINT, nullable=False, unique=True)
     tg_first_name = Column(String(50), nullable=False)
-    dialog_state = Column(String(50))
+    dialog_state = Column(String(50), default="")
+    # Оплачено ли использование бота для данного пользователя
+    paid = Column(Integer, default=PaidEnum.NOT_PAID)
+
+    def is_paid(self):
+        if self.paid:
+            return True
+        else:
+            return False
 
     def get_tg_first_name(self):
         # Returns telegram first name of user
@@ -62,14 +75,14 @@ class TGChannel(Base):
     vk_group_id = Column(Integer, ForeignKey('vk_groups.id'))
     vk_group = relationship('VKGroup', backref='channels')
 
-    # Оплачено ли использование бота для данного канала
-    paid = Column(Enum(PaidEnum), default=PaidEnum.not_paid)
+    # Триггер вкл/выкл
+    state = Column(Integer, default=ChannelStateEnum.OFF)
 
-    def is_paid(self):
-        if self.paid:
-            return True
-        else:
-            return False
+    def get_channel_state(self):
+        return self.state
+
+    def get_channel_name(self):
+        return self.tg_channel_name
 
 
 class VKGroup(Base):

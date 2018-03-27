@@ -1,5 +1,18 @@
 from database.models import *
 from sqlalchemy.exc import *
+from .models import PaidEnum, ChannelStateEnum
+
+
+'''
+session.query().all() - возвращает результат запроса в виде списка
+session.query().count() - возвращает количество строк в результате запроса
+session.query().delete() - удаляет записи (http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete)
+session.query().filter() - применяет фильтр с использованием SQL выражений
+session.query().filter_by() - применяет фильтр с использованием выражений с ключевыми словами
+session.query().first() - возвращает первый результат
+session.query().get(primary_key_value) - возвращает результат на основе primary key
+session.query().join() - http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.join
+'''
 
 
 def add_tg_user(session, tg_user_id, tg_first_name):
@@ -30,7 +43,7 @@ def add_vk_user(session, vk_user_id):
     return vk_user
 
 
-def add_tg_channel(session, tg_channel_id, tg_user):
+def add_tg_channel(session, tg_channel_id, tg_user, tg_channel_name=""):
     """
     Adds telegram channel to database
     :param session: session object
@@ -39,7 +52,8 @@ def add_tg_channel(session, tg_channel_id, tg_user):
     :return: TGChannel class entity
     """
     tg_channel = TGChannel(tg_channel_id=tg_channel_id,
-                           tg_user=tg_user)
+                           tg_user=tg_user,
+                           tg_channel_name=tg_channel_name)
     session.add(tg_channel)
     session.commit()
     return tg_channel
@@ -79,23 +93,24 @@ def bind_channel_with_group(session, tg_channel, vk_group):
     :param session: session object
     :param tg_channel: TGChannel class entity
     :param vk_group: VKGroup class entity
-    :return:
+    :return: None
     """
     tg_channel.vk_group = vk_group
     session.add(tg_channel)
     session.commit()
 
 
-def get_channels(session, tg_user=None):
+def get_channels(session, tg_user_id=None):
     """
     Get list of channels by tg_user
     :param session: session object
-    :param tg_user: TGUser class entity or None if need all channels in DB
-    :return: list of TGChannel objects
+    :param tg_user_id: TG user id or None if need all channels in DB
+    :return: list of TG Channel ids
     """
-    if not tg_user:
+    if not tg_user_id:
         channels = session.query(TGChannel).all()
     else:
+        tg_user = get_tg_user(session, tg_user_id)
         channels = session.query(TGChannel).filter_by(tg_user_id=tg_user.id).all()
     return [channel.tg_channel_id for channel in channels]
 
@@ -130,15 +145,108 @@ def get_channel_by_id(session, tg_channel_id):
     return session.query(TGChannel).filter_by(tg_channel_id=tg_channel_id).first()
 
 
+def set_channel_name(session, tg_channel_id, channel_name):
+    """
+    Set TG channel name
+    :param session: session object
+    :param tg_channel_id: telegram channel id, integer
+    :param channel_name: channel name, string
+    :return: None
+    """
+    channel = get_channel_by_id(session, tg_channel_id)
+    channel.tg_channel_name = channel_name
+    session.add(channel)
+    session.commit()
+
+
 def update_user_dialog_state(session, tg_user_id, state):
     """
     Update dialog state with user
     :param session: session object
     :param tg_user_id: ID of user in telegram, integer
     :param state: dialog state, String (max 50)
-    :return:
+    :return: None
     """
     tg_user = get_tg_user(session, tg_user_id)
     tg_user.dialog_state = state
     session.add(tg_user)
     session.commit()
+
+
+def is_channel_on(session, tg_channel_id):
+    """
+    Returns True if state of channel == ON, False if OFF
+    :param session: session object
+    :param tg_channel_id: telegram channel id, integer
+    :return: bool
+    """
+    channel = get_channel_by_id(session, tg_channel_id)
+    if channel.get_channel_state():
+        return True
+    else:
+        return False
+
+
+def set_channel_on(session, tg_channel_id):
+    """
+    Changes state of channel to ON
+    :param session: session object
+    :param tg_channel_id: telegram channel id, integer
+    :return: None
+    """
+    channel = get_channel_by_id(session, tg_channel_id)
+    channel.state = ChannelStateEnum.ON
+
+
+def set_channel_off(session, tg_channel_id):
+    """
+    Changes state of channel to OFF
+    :param session: session object
+    :param tg_channel_id: telegram channel id, integer
+    :return: None
+    """
+    channel = get_channel_by_id(session, tg_channel_id)
+    channel.state = ChannelStateEnum.OFF
+
+
+def is_user_paid(session, tg_user_id):
+    """
+    Returns True if user paid, False otherwise
+    :param session: session object
+    :param tg_user_id: ID of user in telegram, integer
+    :return: bool
+    """
+    tg_user = get_tg_user(session, tg_user_id)
+    return tg_user.is_paid()
+
+
+def set_user_paid(session, tg_user_id):
+    """
+    Changes payment state for user to PAID
+    :param session: session object
+    :param tg_user_id: ID of user in telegram, integer
+    :return: None
+    """
+    tg_user = get_tg_user(session, tg_user_id)
+    if tg_user.is_paid():
+        pass
+    else:
+        tg_user.paid = PaidEnum.PAID
+        session.add(tg_user)
+        session.commit()
+
+
+def set_user_not_paid(session, tg_user_id):
+    """
+    Changes payment state for user to NOT_PAID
+    :param session: session object
+    :param tg_user_id: ID of user in telegram, integer
+    :return: None
+    """
+    tg_user = get_tg_user(session, tg_user_id)
+    if not tg_user.is_paid():
+        pass
+    else:
+        tg_user.paid = PaidEnum.NOT_PAID
+        session.add(tg_user)
+        session.commit()

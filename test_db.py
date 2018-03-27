@@ -38,25 +38,31 @@ test_tg_user_2 = utils.add_tg_user(session, 54687944, "test_user_2")
 test_tg_channel = utils.add_tg_channel(session, -5468798, test_tg_user_2)
 
 
-'''
-session.query().all() - возвращает результат запроса в виде списка
-session.query().count() - возвращает количество строк в результате запроса
-session.query().delete() - удаляет записи (http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete)
-session.query().filter() - применяет фильтр с использованием SQL выражений
-session.query().filter_by() - применяет фильтр с использованием выражений с ключевыми словами
-session.query().first() - возвращает первый результат
-session.query().get(primary_key_value) - возвращает результат на основе primary key
-session.query().join() - http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.join
-'''
-
 print(utils.get_channels(session))
 
-print(utils.get_channels(session, test_tg_user_2))
+print(utils.get_channels(session, 6123456))
 
 print(utils.get_tg_user(session, 6123456).get_dialog_state())
 
 print(utils.get_tg_user(session, 6123456).get_tg_first_name())
 
 print(utils.get_tg_user(session, 54687944))
+
+# задать имя каналу
+utils.set_channel_name(session, -4022005, "Abracadabra")
+
+# получить имя канала
+print(utils.get_channel_by_id(session, -4022005).get_channel_name())
+
+# Проверяем состояние оплаты и состояние канала (вкл/выкл)
+print(utils.is_user_paid(session, 6123456))
+print(utils.is_channel_on(session, -4022005))
+
+# Меняем состояние канала и состояние оплаты
+utils.set_channel_on(session, -4022005)
+print(utils.is_channel_on(session, -4022005))
+
+utils.set_user_paid(session, 6123456)
+print(utils.is_user_paid(session, 6123456))
 
 session.close()
