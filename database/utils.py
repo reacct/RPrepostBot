@@ -1,5 +1,4 @@
 from database.models import *
-from sqlalchemy.exc import *
 from .models import PaidEnum, ChannelStateEnum
 
 
@@ -43,16 +42,17 @@ def add_vk_user(session, vk_user_id):
     return vk_user
 
 
-def add_tg_channel(session, tg_channel_id, tg_user, tg_channel_name=""):
+def add_tg_channel(session, tg_channel_id, tg_user_id, tg_channel_name=""):
     """
     Adds telegram channel to database
     :param session: session object
     :param tg_channel_id: Telegram channel id, integer
-    :param tg_user: TGUser class entity
+    :param tg_user_id: TGUser class entity
+    :param tg_channel_name: Name of channel, String
     :return: TGChannel class entity
     """
     tg_channel = TGChannel(tg_channel_id=tg_channel_id,
-                           tg_user=tg_user,
+                           tg_user=get_tg_user(session, tg_user_id),
                            tg_channel_name=tg_channel_name)
     session.add(tg_channel)
     session.commit()
@@ -74,27 +74,29 @@ def add_vk_group(session, vk_group_id, vk_user):
     return vk_group
 
 
-def add_tg_post(session, tg_channel):
+def add_tg_post(session, tg_channel_id):
     """
     Adds new telegram post record. Automatically adds timestamp, when crates
     :param session: session object
-    :param tg_channel: TGChannel class entity
+    :param tg_channel_id: TG Channel id, integer
     :return: TGPost class entity
     """
+    tg_channel = get_channel_by_id(session, tg_channel_id)
     tg_post = TGPost(tg_channel=tg_channel)
     session.add(tg_post)
     session.commit()
     return tg_post
 
 
-def bind_channel_with_group(session, tg_channel, vk_group):
+def bind_channel_with_group(session, tg_channel_id, vk_group):
     """
     Bind telegram channel with VK group
     :param session: session object
-    :param tg_channel: TGChannel class entity
+    :param tg_channel_id: TG Channel id, integer
     :param vk_group: VKGroup class entity
     :return: None
     """
+    tg_channel = get_channel_by_id(session, tg_channel_id)
     tg_channel.vk_group = vk_group
     session.add(tg_channel)
     session.commit()
@@ -115,14 +117,17 @@ def get_channels(session, tg_user_id=None):
     return [channel.tg_channel_id for channel in channels]
 
 
-def get_posts_by_channel(session, tg_channel):
+def get_posts_by_channel(session, tg_channel_id=None):
     """
     Get list of TG posts by telegram channel
     :param session: session object
-    :param tg_channel: TGChannel class entity
+    :param tg_channel_id: TG Channel id, integer
     :return: list of TGPost objects
     """
-    return session.query(TGPost).filter_by(tg_channel_id=tg_channel.id).all()
+    if tg_channel_id:
+        return session.query(TGPost).filter_by(tg_channel_id=get_channel_by_id(session, tg_channel_id).id).all()
+    else:
+        return session.query(TGPost).all()
 
 
 def get_tg_user(session, tg_user_id):
@@ -254,3 +259,50 @@ def set_user_not_paid(session, tg_user_id):
         tg_user.paid = PaidEnum.NOT_PAID
         session.add(tg_user)
         session.commit()
+
+
+def delete_channel(session, tg_channel_id):
+    """
+    Delete channel and related posts and vk group
+    :param session: session object
+    :param tg_channel_id: channel id, integer
+    :return: None
+    """
+    channel = get_channel_by_id(session, tg_channel_id)
+    if not channel:
+        pass
+    else:
+        vk_group = session.query(VKGroup).get(channel.vk_group_id)
+        session.delete(channel)
+        if vk_group:
+            session.delete(vk_group)
+        session.commit()
+
+
+def delete_tg_user(session, tg_user_id):
+    """
+    Delete telegram user with related channels
+    :param session: session object
+    :param tg_user_id: telegram user id, integer
+    :return: None
+    """
+    tg_user = get_tg_user(session, tg_user_id)
+    if not tg_user:
+        pass
+    else:
+        session.delete(tg_user)
+        session.commit()
+
+
+def get_num_posts(session, tg_channel_id):
+    """
+    Get number of posts for given channel
+    :param session: session object
+    :param tg_channel_id: telegram channel id, integer
+    :return: None
+    """
+    tg_channel = get_channel_by_id(session, tg_channel_id)
+    if tg_channel:
+        return session.query(TGPost).filter_by(tg_channel_id=tg_channel.id).count()
+    else:
+        pass

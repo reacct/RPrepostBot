@@ -23,8 +23,9 @@ class TGUser(Base):
 
     id = Column(Integer, primary_key=True)
     tg_user_id = Column(BIGINT, nullable=False, unique=True)
-    tg_first_name = Column(String(50), nullable=False)
-    dialog_state = Column(String(50), default="")
+    tg_first_name = Column(String(50, convert_unicode=True), nullable=False)
+    dialog_state = Column(String(50, convert_unicode=True), default="")
+    tg_channels = relationship("TGChannel", back_populates="tg_user", cascade="all, delete, delete-orphan")
     # Оплачено ли использование бота для данного пользователя
     paid = Column(Integer, default=PaidEnum.NOT_PAID)
 
@@ -72,10 +73,12 @@ class TGChannel(Base):
 
     # Связь канал<->группаВК
     vk_group_id = Column(Integer, ForeignKey('vk_groups.id'))
-    vk_group = relationship('VKGroup', backref='channels')
+    vk_group = relationship('VKGroup', backref='tg_channel')
 
     # Триггер вкл/выкл
     state = Column(Integer, default=ChannelStateEnum.OFF)
+
+    posts = relationship("TGPost", back_populates="tg_channel", cascade="all, delete, delete-orphan")
 
     def get_channel_state(self):
         return self.state
@@ -94,6 +97,9 @@ class VKGroup(Base):
     vk_user_id = Column(Integer, ForeignKey('vk_users.id'), nullable=False)
     vk_user = relationship('VKUser', backref='groups')
 
+    def __repr__(self):
+        return "<type: VK group, vk_group_id: {}>".format(self.vk_group_id)
+
 
 class TGPost(Base):
     __tablename__ = 'tg_posts'
@@ -103,5 +109,5 @@ class TGPost(Base):
 
     # Связь пост<->канал
     tg_channel_id = Column(Integer, ForeignKey('tg_channels.id'), nullable=False)
-    tg_channel = relationship('TGChannel', backref='posts')
+    tg_channel = relationship('TGChannel', back_populates='posts')
 

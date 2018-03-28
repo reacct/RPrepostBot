@@ -1,17 +1,17 @@
-from database.models import *
 from database.database import engine, Base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils.functions import database_exists, create_database, drop_database
 from database import utils
 
 # пересоздаём базу перед тестами
+
 if database_exists(engine.url):
     try:
         drop_database(engine.url)
     except:
         print('Problems with database drop')
     try:
-        create_database(engine.url, encoding='utf8mb4')
+        create_database(engine.url, encoding='utf8')
     except:
         print('Problem with database creation')
 
@@ -25,17 +25,19 @@ session = Session()
 # создаём тестовых пользователей
 test_tg_user = utils.add_tg_user(session, 6123456, "asdf")
 test_vk_user = utils.add_vk_user(session, 6789012)
-test_vk_group = utils.add_vk_group(session, -4567890, test_vk_user)
-test_tg_channel = utils.add_tg_channel(session, -4022001, test_tg_user)
-test_tg_channel_2 = utils.add_tg_channel(session, -4022005, test_tg_user)
+test_tg_channel = utils.add_tg_channel(session, -4022001, 6123456)
+test_tg_channel_2 = utils.add_tg_channel(session, -4022005, 6123456)
 
-test_tg_post = utils.add_tg_post(session, test_tg_channel)
-test_tg_post_1 = utils.add_tg_post(session, test_tg_channel)
+test_tg_post = utils.add_tg_post(session, -4022001)
+test_tg_post_1 = utils.add_tg_post(session, -4022001)
 
-utils.update_user_dialog_state(session, 6123456, "hello")
+for i in range(5):
+    utils.add_tg_post(session, -4022005)
+
+utils.update_user_dialog_state(session, 6123456, "привет")
 
 test_tg_user_2 = utils.add_tg_user(session, 54687944, "test_user_2")
-test_tg_channel = utils.add_tg_channel(session, -5468798, test_tg_user_2)
+test_tg_channel_3 = utils.add_tg_channel(session, -5468798, 54687944)
 
 
 print(utils.get_channels(session))
@@ -48,8 +50,10 @@ print(utils.get_tg_user(session, 6123456).get_tg_first_name())
 
 print(utils.get_tg_user(session, 54687944))
 
+utils.bind_channel_with_group(session, -4022001, utils.add_vk_group(session, -43523541, test_vk_user))
+
 # задать имя каналу
-utils.set_channel_name(session, -4022005, "Abracadabra")
+utils.set_channel_name(session, -4022005, "Имя на русском языке!")
 
 # получить имя канала
 print(utils.get_channel_by_id(session, -4022005).get_channel_name())
@@ -64,5 +68,26 @@ print(utils.is_channel_on(session, -4022005))
 
 utils.set_user_paid(session, 6123456)
 print(utils.is_user_paid(session, 6123456))
+
+# Количество постов для канала
+print("В канале с id {} {} постов".format(test_tg_channel.tg_channel_id,
+                                          utils.get_num_posts(session, test_tg_channel.tg_channel_id)))
+
+print(test_tg_channel.posts)
+
+# Удаляем канал
+utils.delete_channel(session, -4022001)
+
+print("В канале с id {} {} постов".format(-4022001,
+                                          utils.get_num_posts(session, -4022001)))
+
+print(utils.get_posts_by_channel(session))
+
+print(utils.get_posts_by_channel(session, -4022005))
+
+# Удаляем пользователя
+utils.delete_tg_user(session, 6123456)
+
+print(utils.get_posts_by_channel(session))
 
 session.close()
