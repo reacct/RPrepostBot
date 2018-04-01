@@ -272,10 +272,11 @@ def delete_channel(session, tg_channel_id):
     if not channel:
         pass
     else:
-        vk_group = session.query(VKGroup).get(channel.vk_group_id)
+        if channel.vk_group_id:
+            vk_group = session.query(VKGroup).get(channel.vk_group_id)
+            if vk_group:
+                session.delete(vk_group)
         session.delete(channel)
-        if vk_group:
-            session.delete(vk_group)
         session.commit()
 
 
