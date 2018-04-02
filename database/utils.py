@@ -29,19 +29,6 @@ def add_tg_user(session, tg_user_id, tg_first_name):
     return tg_user
 
 
-def add_vk_user(session, vk_user_id):
-    """
-    Adds vkontakte user in database
-    :param session: session object
-    :param vk_user_id: VK user id, integer
-    :return: VKUser class entity
-    """
-    vk_user = VKUser(vk_user_id=vk_user_id)
-    session.add(vk_user)
-    session.commit()
-    return vk_user
-
-
 def add_tg_channel(session, tg_channel_id, tg_user_id, tg_channel_name=""):
     """
     Adds telegram channel to database
@@ -59,16 +46,16 @@ def add_tg_channel(session, tg_channel_id, tg_user_id, tg_channel_name=""):
     return tg_channel
 
 
-def add_vk_group(session, vk_group_id, vk_user):
+def add_vk_group(session, vk_group_id, vk_token):
     """
     Adds new vkontakte group
     :param session: session object
     :param vk_group_id: VK group id, integer
-    :param vk_user: VKUser class entity
+    :param vk_token: vk token, integer
     :return: VKGroup class entity
     """
     vk_group = VKGroup(vk_group_id=vk_group_id,
-                       vk_user=vk_user)
+                       vk_token=vk_token)
     session.add(vk_group)
     session.commit()
     return vk_group
@@ -148,6 +135,20 @@ def get_channel_by_id(session, tg_channel_id):
     :return: TGChannel class entity
     """
     return session.query(TGChannel).filter_by(tg_channel_id=tg_channel_id).first()
+
+
+def get_vk_group(session, tg_channel_id):
+    """
+    Returns vk group id if channel bound, or None if not
+    :param session:session object
+    :param tg_channel_id: TG channel id, integer
+    :return: vk group id or None if not bound
+    """
+    channel = get_channel_by_id(session, tg_channel_id)
+    if channel.vk_group:
+        return channel.vk_group.vk_group_id
+    else:
+        return None
 
 
 def set_channel_name(session, tg_channel_id, channel_name):

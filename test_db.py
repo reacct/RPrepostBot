@@ -24,7 +24,6 @@ session = Session()
 
 # создаём тестовых пользователей
 test_tg_user = utils.add_tg_user(session, 6123456, "asdf")
-test_vk_user = utils.add_vk_user(session, 6789012)
 test_tg_channel = utils.add_tg_channel(session, -4022001, 6123456)
 test_tg_channel_2 = utils.add_tg_channel(session, -4022005, 6123456)
 
@@ -50,7 +49,7 @@ print(utils.get_tg_user(session, 6123456).get_tg_first_name())
 
 print(utils.get_tg_user(session, 54687944))
 
-utils.bind_channel_with_group(session, -4022001, utils.add_vk_group(session, -43523541, test_vk_user))
+utils.bind_channel_with_group(session, -4022001, utils.add_vk_group(session, -43523541, "ddfqad12312qwdqdwrg"))
 
 # задать имя каналу
 utils.set_channel_name(session, -4022005, "Имя на русском языке!")

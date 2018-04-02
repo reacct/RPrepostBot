@@ -48,18 +48,6 @@ class TGUser(Base):
                (self.tg_user_id, self.tg_first_name, self.dialog_state)
 
 
-class VKUser(Base):
-    """
-    Класс определяет пользователя вконтакте (id и username)
-    Связан с таблицей групп.
-    """
-    __tablename__ = 'vk_users'
-
-    id = Column(Integer, primary_key=True)
-    vk_user_id = Column(BIGINT, nullable=False)
-    vk_username = Column(String(50))
-
-
 class TGChannel(Base):
     __tablename__ = 'tg_channels'
 
@@ -92,10 +80,7 @@ class VKGroup(Base):
 
     id = Column(Integer, primary_key=True)
     vk_group_id = Column(BIGINT, nullable=False)
-
-    # Связь группа<->пользователь
-    vk_user_id = Column(Integer, ForeignKey('vk_users.id'), nullable=False)
-    vk_user = relationship('VKUser', backref='groups')
+    vk_token = Column(String(100, convert_unicode=True), nullable=False)
 
     def __repr__(self):
         return "<type: VK group, vk_group_id: {}>".format(self.vk_group_id)
