@@ -51,7 +51,7 @@ def add_vk_group(session, vk_group_id, vk_token):
     Adds new vkontakte group
     :param session: session object
     :param vk_group_id: VK group id, integer
-    :param vk_token: vk token, integer
+    :param vk_token: vk token, string
     :return: VKGroup class entity
     """
     vk_group = VKGroup(vk_group_id=vk_group_id,
@@ -308,3 +308,16 @@ def get_num_posts(session, tg_channel_id):
         return session.query(TGPost).filter_by(tg_channel_id=tg_channel.id).count()
     else:
         pass
+
+
+def delete_vk_group(session, vk_group_id):
+    """
+    Deletes vk group
+    :param session: session object
+    :param vk_group_id: vk group id, integer
+    :return: None
+    """
+    vk_group = session.query(VKGroup).filter_by(vk_group_id=vk_group_id).first()
+    if vk_group:
+        session.delete(vk_group)
+        session.commit()
