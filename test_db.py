@@ -68,6 +68,14 @@ print(utils.is_channel_on(session, -4022005))
 utils.set_user_paid(session, 6123456)
 print(utils.is_user_paid(session, 6123456))
 
+# Получаем tg_user_id по tg_channel_id
+print("Получаем tg_user_id по tg_channel_id -4022005")
+print(utils.get_tg_user_id(session, -4022005))
+
+# Получаем вк токен по vk_group_id
+print("Получаем вк токен по vk_group_id -43523541")
+print(utils.get_vk_token(session, -43523541))
+
 # Количество постов для канала
 print("В канале с id {} {} постов".format(test_tg_channel.tg_channel_id,
                                           utils.get_num_posts(session, test_tg_channel.tg_channel_id)))
@@ -88,5 +96,6 @@ print(utils.get_posts_by_channel(session, -4022005))
 utils.delete_tg_user(session, 6123456)
 
 print(utils.get_posts_by_channel(session))
+
 
 session.close()

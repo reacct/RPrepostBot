@@ -127,6 +127,16 @@ def get_tg_user(session, tg_user_id):
     return session.query(TGUser).filter_by(tg_user_id=tg_user_id).first()
 
 
+def get_tg_user_id(session, tg_channel_id):
+    """
+    Returns tg user id by tg channel id
+    :param session: session object
+    :param tg_channel_id: ID of tg channel, integer
+    :return: tg user id, integer, or None
+    """
+    return get_channel_by_id(session, tg_channel_id).tg_user.tg_user_id
+
+
 def get_channel_by_id(session, tg_channel_id):
     """
     Get TGChannel class entity
@@ -149,6 +159,17 @@ def get_vk_group(session, tg_channel_id):
         return channel.vk_group.vk_group_id
     else:
         return None
+
+
+def get_vk_token(session, vk_group_id):
+    """
+    Returns vk token by vk group id
+    :param session: session object
+    :param vk_group_id: ID of vk group
+    :return: vk token, integer
+    """
+    vk_group = session.query(VKGroup).filter_by(vk_group_id=vk_group_id).first()
+    return vk_group.vk_token
 
 
 def set_channel_name(session, tg_channel_id, channel_name):
